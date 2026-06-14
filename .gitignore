@@ -1,0 +1,17 @@
+# Build
+build/
+out/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+_deps/
+Testing/
+compile_commands.json
+CMakeUserPresets.json
+
+# Tooling
+.cache/
+.vscode/
+.zed/
+*.user

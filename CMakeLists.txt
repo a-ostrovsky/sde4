@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 4.2)
+project(sde4 LANGUAGES CXX)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_executable(sde4
+  src/main.cpp
+  src/parser/private/FileReader.cpp
+  src/parser/private/XmlFileParser.cpp
+  src/parser/private/XmlParser.cpp
+)
+
+# --- doctest -----------------------------------------------------------------
+include(FetchContent)
+
+FetchContent_Declare(doctest
+  URL https://raw.githubusercontent.com/doctest/doctest/v2.5.2/doctest/doctest.h
+  DOWNLOAD_NO_EXTRACT TRUE
+)
+FetchContent_MakeAvailable(doctest)
+
+# --- tests -------------------------------------------------------------------
+enable_testing()
+add_executable(sde4_tests
+  test/main.cpp
+  test/parser/XmlParserTest/ElementTest.cpp
+  test/parser/XmlParserTest/AttributeTest.cpp
+  test/util/VectorListTest.cpp
+  src/parser/private/XmlParser.cpp
+)
+target_include_directories(sde4_tests PRIVATE "${doctest_SOURCE_DIR}")
+add_test(NAME sde4_tests COMMAND sde4_tests)
