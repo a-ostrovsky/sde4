@@ -68,9 +68,18 @@ private:
           expect('>');
           return &element;
         }
-        domain::TreeNode* child = parseNode(&element);
-        element.m_children.push_back(child);
-        skipWhitespace();
+        if (consume("<!--")) {
+          domain::TreeNode* comment = parseComment(&element);
+          element.m_children.push_back(comment);
+          skipWhitespace();
+          if (eof()) {
+            return &element;
+          }
+        } else {
+          domain::TreeNode* child = parseNode(&element);
+          element.m_children.push_back(child);
+          skipWhitespace();
+        }
       } else if (eof()) {
         addError("Unexpected end of file.");
         return &element;
@@ -147,6 +156,21 @@ private:
     const auto start = m_currentPosition;
     m_currentPosition = m_xmlContent.find_first_not_of(ValidNameChars, start);
     return m_xmlContent.substr(start, m_currentPosition - start);
+  }
+
+  constexpr domain::TreeNode* parseComment(domain::TreeNode* parent) {
+    const auto start = m_currentPosition;
+    auto endPos = m_xmlContent.find("-->", start);
+    if (endPos == std::string_view::npos) {
+      addError("Expected closing '-->'.");
+      m_currentPosition = m_xmlContent.size();
+    }
+    domain::TreeNode& comment{m_result.m_allNodes.emplace_back()};
+    comment.m_parent = parent;
+    comment.m_type = domain::NodeType::Comment;
+    comment.m_value = m_xmlContent.substr(start, endPos - start);
+    consume("-->");
+    return &comment;
   }
 
   constexpr std::string_view parseQuotedValue() {

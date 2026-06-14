@@ -28,6 +28,7 @@ add_executable(sde4_tests
   test/main.cpp
   test/parser/XmlParserTest/ElementTest.cpp
   test/parser/XmlParserTest/AttributeTest.cpp
+  test/parser/XmlParserTest/CommentTest.cpp
   test/util/VectorListTest.cpp
   src/parser/private/XmlParser.cpp
 )
