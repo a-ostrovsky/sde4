@@ -15,21 +15,21 @@ FileReader::loadFileIntoMemory(const std::filesystem::path& path) {
     });
   }
 
-  std::vector<char> buffer(sz);
-
-  size_t total = 0;
-  while (total < sz) {
-    const size_t chunk = std::fread(buffer.data() + total, 1, sz - total, f);
-    if (chunk == 0) {
-      break;
+  std::string buffer;
+  buffer.resize_and_overwrite(sz, [&](char* data, std::size_t n) {
+    std::size_t total = 0;
+    while (total < n) {
+      const std::size_t chunk = std::fread(data + total, 1, n - total, f);
+      if (chunk == 0) {
+        break;
+      }
+      total += chunk;
     }
-    total += chunk;
-  }
+    return total;
+  });
   std::fclose(f);
 
-  buffer.resize(total);
-
-  return std::string(buffer.data(), buffer.size());
+  return buffer;
 }
 
 } // namespace sde4::parser
