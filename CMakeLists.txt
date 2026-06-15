@@ -13,6 +13,11 @@ add_executable(sde4
   src/parser/private/XmlParser.cpp
 )
 
+add_executable(sde4_benchmark
+  benchmark/FileLoadBenchmark.cpp
+  src/parser/private/FileReader.cpp
+)
+
 # --- doctest -----------------------------------------------------------------
 include(FetchContent)
 
