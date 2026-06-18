@@ -7,7 +7,7 @@
 namespace sde4::parser {
 
 class StatefulXmlParser {
-  static constexpr std::string AllWhitespaces = " \t\r\n\f\t\v";
+  static constexpr std::string AllWhitespaces = " \r\n\f\t\v";
   static constexpr std::string_view ValidNameChars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
       "abcdefghijklmnopqrstuvwxyz"
