@@ -13,9 +13,9 @@ class StatefulXmlParser {
       "abcdefghijklmnopqrstuvwxyz"
       "0123456789"
       "_-:.";
-  XmlParseResult m_result;
-  std::string_view m_xmlContent;
+  XmlParseResult m_result{};
   std::size_t m_currentPosition{};
+  std::string_view m_xmlContent;
 
 public:
   explicit constexpr StatefulXmlParser(std::string_view xmlContent)
