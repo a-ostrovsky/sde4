@@ -123,7 +123,6 @@ private:
   }
 
   constexpr void expect(std::string_view str) {
-    expectNoEof();
     if (!consume(str)) {
       addError(std::format("Expected: {}. Found: {}.", str, peek()));
     }
