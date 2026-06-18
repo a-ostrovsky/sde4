@@ -16,13 +16,12 @@ namespace sde4::util {
 template <typename T> struct VectorListCompactResult;
 
 template <typename T> class VectorList {
-  static constexpr std::size_t ChunkSize{1024ull * 64};
+  static constexpr std::size_t ChunkSize{1024 * 64};
   static constexpr std::size_t BitsPerWord{64};
 
   struct Chunk {
     std::vector<T> m_data{};
     std::vector<std::bitset<BitsPerWord>> m_deletedBits{};
-    std::size_t m_aliveCount{0};
   };
 
   struct Position {
@@ -44,7 +43,7 @@ template <typename T> class VectorList {
     std::size_t m_chunkIndex{};
     std::size_t m_elementIndex{};
 
-    constexpr void skipAliveForward() {
+    constexpr void advanceToNextAlive() {
       while (m_chunkIndex < m_chunks->size()) {
         auto const& chunk = (*m_chunks)[m_chunkIndex];
         while (m_elementIndex < chunk.m_data.size()) {
@@ -75,7 +74,7 @@ template <typename T> class VectorList {
 
     constexpr IteratorImpl& operator++() {
       ++m_elementIndex;
-      skipAliveForward();
+      advanceToNextAlive();
       return *this;
     }
     constexpr IteratorImpl operator++(int) {
@@ -100,7 +99,7 @@ public:
   iterator begin() {
     auto it = iterator{};
     it.m_chunks = &m_chunks;
-    it.skipAliveForward();
+    it.advanceToNextAlive();
     return it;
   }
   iterator end() {
@@ -113,7 +112,7 @@ public:
   const_iterator begin() const {
     auto it = const_iterator{};
     it.m_chunks = &m_chunks;
-    it.skipAliveForward();
+    it.advanceToNextAlive();
     return it;
   }
   const_iterator end() const {
@@ -130,7 +129,6 @@ public:
   template <typename... Args> constexpr T& emplace_back(Args&&... args) {
     ensureChunk();
     T& ref = m_chunks.back().m_data.emplace_back(std::forward<Args>(args)...);
-    ++m_chunks.back().m_aliveCount;
     ++m_itemCount;
     return ref;
   }
@@ -176,7 +174,7 @@ private:
     auto& chunk = m_chunks.emplace_back();
     chunk.m_data.reserve(ChunkSize);
     const std::size_t wordsNeeded{(ChunkSize + BitsPerWord - 1) / BitsPerWord};
-    m_chunks.back().m_deletedBits.resize(wordsNeeded, {});
+    chunk.m_deletedBits.resize(wordsNeeded, {});
   }
 
   constexpr Position findChunkAndIndex(const T* ptr) const {
@@ -199,12 +197,10 @@ private:
     if (op == SoftDeleteOperation::Delete &&
         !chunk.m_deletedBits[word].test(bit)) {
       chunk.m_deletedBits[word].set(bit);
-      --chunk.m_aliveCount;
       --m_itemCount;
     } else if (op == SoftDeleteOperation::Undelete &&
                chunk.m_deletedBits[word].test(bit)) {
       chunk.m_deletedBits[word].reset(bit);
-      ++chunk.m_aliveCount;
       ++m_itemCount;
     }
   }
