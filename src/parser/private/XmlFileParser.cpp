@@ -1,6 +1,7 @@
 #include "XmlFileParser.h"
 #include "../../domain/Arena.h"
 #include "FileReader.h"
+#include "XmlParser.h"
 #include <filesystem>
 
 namespace {
@@ -14,15 +15,26 @@ struct Impl : XmlFileParser {
       return std::unexpected(fileContentOrError.error());
     }
 
-    sde4::domain::Arena arena {
-      .m_fileContent = std::move(fileContentOrError.value())
+    auto fileContent = std::move(fileContentOrError.value());
+
+    auto parseResult = XmlParser::parse(fileContent);
+
+    if (!parseResult.m_errors.empty()) {
+      return std::unexpected(ParseError{
+          .m_message = parseResult.m_errors.front().m_message,
+      });
+    }
+
+    sde4::domain::Arena arena{
+        .m_nodes = std::move(parseResult.m_allNodes),
+        .m_fileContent = std::move(fileContent),
     };
 
-    ParseResult result{
+    return ParseResult{
+        .m_arena = std::move(arena),
+        .m_rootNodes = std::move(parseResult.m_rootNodes),
         .m_path = path,
     };
-
-    return result;
   }
 
 };
