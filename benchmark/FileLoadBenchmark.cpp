@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <memory>
 #include <random>
 #include <string>
 #include <string_view>
@@ -28,8 +29,8 @@ void createXmlFile(const std::filesystem::path& path, std::size_t targetBytes) {
       std::string_view{"section"}, std::string_view{"block"},
   };
   static constexpr std::array attrs = {
-      std::string_view{"id"},   std::string_view{"name"},
-      std::string_view{"type"}, std::string_view{"key"},
+      std::string_view{"id"},    std::string_view{"name"},
+      std::string_view{"type"},  std::string_view{"key"},
       std::string_view{"class"}, std::string_view{"ref"},
       std::string_view{"lang"},  std::string_view{"state"},
   };
@@ -132,10 +133,13 @@ void createXmlFile(const std::filesystem::path& path, std::size_t targetBytes) {
   xml += root;
   xml += ">\n";
 
-  FILE* f = fopen(path.string().c_str(), "wb");
-  if (!f) return;
-  fwrite(xml.data(), 1, xml.size(), f);
-  fclose(f);
+  constexpr auto closeFile = [](FILE* f) noexcept { std::fclose(f); };
+  std::unique_ptr<FILE, decltype(closeFile)> f{
+      fopen(path.string().c_str(), "wb"),
+  };
+  if (!f)
+    return;
+  fwrite(xml.data(), 1, xml.size(), f.get());
 }
 
 } // namespace sde4::benchmark
