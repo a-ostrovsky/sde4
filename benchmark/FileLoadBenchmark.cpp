@@ -1,4 +1,5 @@
 #include "../src/parser/private/FileReader.h"
+#include "../src/parser/private/XmlParser.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -13,6 +14,26 @@ namespace sde4::benchmark {
 void loadFileAndClobber(const std::filesystem::path& path) {
   auto content = sde4::parser::FileReader::loadFileIntoMemory(path);
   asm volatile("" : : "r"(content->data()), "r"(content->size()) : "memory");
+}
+
+void parseFile(const std::filesystem::path& path) {
+  auto contentOrError = sde4::parser::FileReader::loadFileIntoMemory(path);
+  if (!contentOrError) {
+    std::fprintf(stderr, "failed to load: %s\n",
+                 contentOrError.error().m_message.c_str());
+    return;
+  }
+  auto content = std::move(contentOrError.value());
+  const auto t0 = std::clock();
+  auto result = sde4::parser::XmlParser::parse(content);
+  const auto t1 = std::clock();
+  asm volatile("" : : "r"(result.m_allNodes.size()),
+               "r"(result.m_rootNodes.size())
+               : "memory");
+  std::fprintf(stderr, "parsed %zu bytes, %zu nodes, %zu roots, %zu errors in %.3fs\n",
+               content.size(), result.m_allNodes.size(),
+               result.m_rootNodes.size(), result.m_errors.size(),
+               double(t1 - t0) / CLOCKS_PER_SEC);
 }
 
 void createXmlFile(const std::filesystem::path& path, std::size_t targetBytes) {
@@ -153,8 +174,12 @@ int main(int argc, char* argv[]) {
     sde4::benchmark::loadFileAndClobber(argv[2]);
     return 0;
   }
+  if (argc >= 3 && !std::strcmp(argv[1], "parse")) {
+    sde4::benchmark::parseFile(argv[2]);
+    return 0;
+  }
   std::fprintf(stderr,
-               "usage: benchmark read <file>  |  benchmark create <file> "
-               "<bytes>\n");
+               "usage: benchmark read <file>  |  benchmark parse <file>  |  "
+               "benchmark create <file> <bytes>\n");
   return 1;
 }

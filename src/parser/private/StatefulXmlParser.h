@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../util/CharSet.h"
 #include "XmlParser.h"
 #include <format>
 #include <string_view>
@@ -7,12 +8,6 @@
 namespace sde4::parser {
 
 class StatefulXmlParser {
-  static constexpr std::string AllWhitespaces = " \r\n\f\t\v";
-  static constexpr std::string_view ValidNameChars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-      "abcdefghijklmnopqrstuvwxyz"
-      "0123456789"
-      "_-:.";
   XmlParseResult m_result{};
   std::size_t m_currentPosition{};
   std::string_view m_xmlContent;
@@ -145,15 +140,14 @@ private:
   }
 
   constexpr void skipWhitespace() {
-    // skip whitespaces
     m_currentPosition =
-        m_xmlContent.find_first_not_of(AllWhitespaces, m_currentPosition);
+        util::findFirstNotWhitespace(m_xmlContent, m_currentPosition);
   }
 
   constexpr std::string_view readName() {
     skipWhitespace();
     const auto start = m_currentPosition;
-    m_currentPosition = m_xmlContent.find_first_not_of(ValidNameChars, start);
+    m_currentPosition = util::findFirstNotNameChar(m_xmlContent, start);
     return m_xmlContent.substr(start, m_currentPosition - start);
   }
 

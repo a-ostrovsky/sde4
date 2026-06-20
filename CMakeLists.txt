@@ -16,6 +16,7 @@ add_executable(sde4
 add_executable(sde4_benchmark
   benchmark/FileLoadBenchmark.cpp
   src/parser/private/FileReader.cpp
+  src/parser/private/XmlParser.cpp
 )
 
 # --- doctest -----------------------------------------------------------------
@@ -35,6 +36,7 @@ add_executable(sde4_tests
   test/parser/XmlParserTest/AttributeTest.cpp
   test/parser/XmlParserTest/CommentTest.cpp
   test/util/VectorListTest.cpp
+  test/util/CharSetTest.cpp
   src/parser/private/XmlParser.cpp
 )
 target_include_directories(sde4_tests PRIVATE "${doctest_SOURCE_DIR}")
