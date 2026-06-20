@@ -18,8 +18,27 @@ public:
 
   constexpr XmlParseResult parse() {
     m_currentPosition = 0;
-    domain::TreeNode* root = parseNode(nullptr);
-    m_result.m_rootNodes.push_back(root);
+    while (!eof()) {
+      skipWhitespace();
+      if (eof())
+        break;
+      if (consume("<!--")) {
+        domain::TreeNode* comment = parseComment(nullptr);
+        m_result.m_rootNodes.push_back(comment);
+      } else if (peek() == '<') {
+        domain::TreeNode* root = parseNode(nullptr);
+        m_result.m_rootNodes.push_back(root);
+      } else {
+        addError("Unexpected content at top level.");
+        // skip to next '<' to avoid infinite loop
+        auto next = m_xmlContent.find('<', m_currentPosition);
+        if (next == std::string_view::npos) {
+          m_currentPosition = m_xmlContent.size();
+        } else {
+          m_currentPosition = next;
+        }
+      }
+    }
     return std::exchange(m_result, {});
   }
 
