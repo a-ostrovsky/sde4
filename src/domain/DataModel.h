@@ -13,11 +13,9 @@ enum class NodeType : std::uint8_t {
   Attribute,
   Comment,
   ProcessingInstruction,
+  Doctype,
   // TODO: For later
-  // eCDATA,
-  // eDECLARATION,
-  // eDOCTYPE,
-  // ePI
+  // eCDATA, eDECLARATION, ePI
 };
 
 struct XmlError {

@@ -28,6 +28,9 @@ public:
       } else if (consume("<?")) {
         domain::TreeNode* pi = parseProcessingInstruction(nullptr);
         m_result.m_rootNodes.push_back(pi);
+      } else if (consume("<!DOCTYPE")) {
+        domain::TreeNode* dt = parseDoctype();
+        m_result.m_rootNodes.push_back(dt);
       } else if (peek() == '<') {
         domain::TreeNode* root = parseNode(nullptr);
         m_result.m_rootNodes.push_back(root);
@@ -211,6 +214,42 @@ private:
     pi.m_value = m_xmlContent.substr(start, endPos - start);
     consume("?>");
     return &pi;
+  }
+
+  constexpr domain::TreeNode* parseDoctype() {
+    domain::TreeNode& dt{m_result.m_allNodes.emplace_back()};
+    dt.m_parent = nullptr;
+    dt.m_type = domain::NodeType::Doctype;
+    dt.m_name = readName();
+    skipWhitespace();
+    const auto start = m_currentPosition;
+    std::size_t bracketDepth = 0;
+    bool inQuotes = false;
+    char quoteChar = 0;
+    while (m_currentPosition < m_xmlContent.size()) {
+      if (inQuotes) {
+        if (peek() == quoteChar) {
+          inQuotes = false;
+        }
+      } else if (peek() == '"' || peek() == '\'') {
+        inQuotes = true;
+        quoteChar = peek();
+      } else if (peek() == '[') {
+        ++bracketDepth;
+      } else if (peek() == ']') {
+        if (bracketDepth > 0) {
+          --bracketDepth;
+        }
+      } else if (peek() == '>' && bracketDepth == 0) {
+        dt.m_value = m_xmlContent.substr(start, m_currentPosition - start);
+        ++m_currentPosition;
+        return &dt;
+      }
+      ++m_currentPosition;
+    }
+    addError("Expected closing '>' for DOCTYPE.");
+    dt.m_value = m_xmlContent.substr(start);
+    return &dt;
   }
 
   constexpr std::string_view parseQuotedValue() {
