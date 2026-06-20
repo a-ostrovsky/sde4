@@ -11,7 +11,8 @@ namespace sde4::domain {
 enum class NodeType : std::uint8_t {
   Element,
   Attribute,
-  Comment
+  Comment,
+  ProcessingInstruction,
   // TODO: For later
   // eCDATA,
   // eDECLARATION,

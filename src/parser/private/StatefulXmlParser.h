@@ -25,6 +25,9 @@ public:
       if (consume("<!--")) {
         domain::TreeNode* comment = parseComment(nullptr);
         m_result.m_rootNodes.push_back(comment);
+      } else if (consume("<?")) {
+        domain::TreeNode* pi = parseProcessingInstruction(nullptr);
+        m_result.m_rootNodes.push_back(pi);
       } else if (peek() == '<') {
         domain::TreeNode* root = parseNode(nullptr);
         m_result.m_rootNodes.push_back(root);
@@ -85,6 +88,13 @@ private:
         if (consume("<!--")) {
           domain::TreeNode* comment = parseComment(&element);
           element.m_children.push_back(comment);
+          skipWhitespace();
+          if (eof()) {
+            return &element;
+          }
+        } else if (consume("<?")) {
+          domain::TreeNode* pi = parseProcessingInstruction(&element);
+          element.m_children.push_back(pi);
           skipWhitespace();
           if (eof()) {
             return &element;
@@ -183,6 +193,24 @@ private:
     comment.m_value = m_xmlContent.substr(start, endPos - start);
     consume("-->");
     return &comment;
+  }
+
+  constexpr domain::TreeNode*
+  parseProcessingInstruction(domain::TreeNode* parent) {
+    domain::TreeNode& pi{m_result.m_allNodes.emplace_back()};
+    pi.m_parent = parent;
+    pi.m_type = domain::NodeType::ProcessingInstruction;
+    pi.m_name = readName();
+    skipWhitespace();
+    const auto start = m_currentPosition;
+    auto endPos = m_xmlContent.find("?>", start);
+    if (endPos == std::string_view::npos) {
+      addError("Expected closing '?>'.");
+      m_currentPosition = m_xmlContent.size();
+    }
+    pi.m_value = m_xmlContent.substr(start, endPos - start);
+    consume("?>");
+    return &pi;
   }
 
   constexpr std::string_view parseQuotedValue() {
