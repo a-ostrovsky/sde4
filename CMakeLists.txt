@@ -2,8 +2,13 @@ cmake_minimum_required(VERSION 4.2)
 project(sde4 LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(MSVC)
+add_compile_options(/std:c++latest)
+else()
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(sde4
@@ -17,6 +22,10 @@ add_executable(sde4_benchmark
   benchmark/FileLoadBenchmark.cpp
   src/parser/private/FileReader.cpp
   src/parser/private/XmlParser.cpp
+)
+
+target_compile_options(sde4_benchmark PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/std:c++latest>
 )
 
 # --- doctest -----------------------------------------------------------------

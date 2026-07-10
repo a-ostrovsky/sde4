@@ -1,5 +1,8 @@
 #include "../../../src/parser/private/XmlParser.h"
 #include <doctest.h>
+#ifdef _MSC_VER
+#include <ostream>
+#endif
 #include <string>
 #include <vector>
 

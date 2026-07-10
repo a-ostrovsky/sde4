@@ -1,6 +1,9 @@
 #include "../src/parser/private/FileReader.h"
 #include "../src/parser/private/XmlParser.h"
 #include <array>
+#ifdef _MSC_VER
+#include <atomic>
+#endif
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -11,9 +14,24 @@
 
 namespace sde4::benchmark {
 
+#ifdef _MSC_VER
+template <typename T>
+void doNotOptimize(const T& val) noexcept {
+    volatile const void* sink = &val;
+    (void)sink;
+    std::atomic_signal_fence(std::memory_order_acq_rel);
+}
+#else
+template <typename T>
+inline void doNotOptimize(const T& val) noexcept {
+    asm volatile("" : : "r"(val) : "memory");
+}
+#endif
+
 void loadFileAndClobber(const std::filesystem::path& path) {
   auto content = sde4::parser::FileReader::loadFileIntoMemory(path);
-  asm volatile("" : : "r"(content->data()), "r"(content->size()) : "memory");
+  doNotOptimize(content->data());
+  doNotOptimize(content->size());
 }
 
 void parseFile(const std::filesystem::path& path) {
@@ -27,9 +45,8 @@ void parseFile(const std::filesystem::path& path) {
   const auto t0 = std::clock();
   auto result = sde4::parser::XmlParser::parse(content);
   const auto t1 = std::clock();
-  asm volatile("" : : "r"(result.m_allNodes.size()),
-               "r"(result.m_rootNodes.size())
-               : "memory");
+  doNotOptimize(result.m_allNodes.size());
+  doNotOptimize(result.m_rootNodes.size());
   std::fprintf(stderr, "parsed %zu bytes, %zu nodes, %zu roots, %zu errors in %.3fs\n",
                content.size(), result.m_allNodes.size(),
                result.m_rootNodes.size(), result.m_errors.size(),

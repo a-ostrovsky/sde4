@@ -1,5 +1,6 @@
 #include "../../../src/parser/private/XmlParser.h"
 #include <doctest.h>
+#include <ostream>
 #include <string>
 #include <vector>
 
