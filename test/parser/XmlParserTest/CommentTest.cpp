@@ -12,10 +12,10 @@ using namespace sde4::domain;
 TEST_CASE("parse comment inside element") {
   const std::string xml = "<root><!--c--></root>";
   const auto result = XmlParser::parse(xml);
-  CHECK(result.m_rootNodes.at(0)->m_children.size() == 1);
-  const auto* commentNode = result.m_rootNodes.at(0)->m_children.at(0);
+  CHECK(result.m_rootNodes.at(0)->m_numChildren == 1);
+  const auto* commentNode = result.m_rootNodes.at(0)->m_firstChild;
   CHECK(commentNode->m_type == NodeType::Comment);
-  CHECK(commentNode->m_value == "c");
+  CHECK(commentNode->m_content.getValue() == "c");
 }
 
 TEST_CASE("parse comment alongside element") {
@@ -23,18 +23,18 @@ TEST_CASE("parse comment alongside element") {
   const auto result = XmlParser::parse(xml);
   CHECK(result.m_rootNodes.size() == 3);
   CHECK(result.m_rootNodes.at(0)->m_type == NodeType::Comment);
-  CHECK(result.m_rootNodes.at(0)->m_value == "c1");
+  CHECK(result.m_rootNodes.at(0)->m_content.getValue() == "c1");
   CHECK(result.m_rootNodes.at(1)->m_type == NodeType::Element);
   CHECK(result.m_rootNodes.at(2)->m_type == NodeType::Comment);
-  CHECK(result.m_rootNodes.at(2)->m_value == "c2");
+  CHECK(result.m_rootNodes.at(2)->m_content.getValue() == "c2");
 }
 
 TEST_CASE("parse malformed comment missing closing") {
   const std::string xml = "<root><!--unclosed</root>";
   const auto result = XmlParser::parse(xml);
-  CHECK(result.m_rootNodes.at(0)->m_children.size() == 1);
-  const auto* commentNode = result.m_rootNodes.at(0)->m_children.at(0);
+  CHECK(result.m_rootNodes.at(0)->m_numChildren == 1);
+  const auto* commentNode = result.m_rootNodes.at(0)->m_firstChild;
   CHECK(commentNode->m_type == NodeType::Comment);
-  CHECK(commentNode->m_value == "unclosed</root>");
+  CHECK(commentNode->m_content.getValue() == "unclosed</root>");
   CHECK_FALSE(result.m_errors.empty());
 }

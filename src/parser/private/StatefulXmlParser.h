@@ -53,21 +53,20 @@ private:
     expect('<');
     domain::TreeNode& element{m_result.m_allNodes.emplace_back()};
     element.m_parent = parent;
-    element.m_name = readName();
+    element.m_content.setName(readName());
     element.m_type = domain::NodeType::Element;
     skipWhitespace();
 
     // parse attributes (before '>' or '/>')
     while (peek() != '>' && peek() != '/') {
       domain::TreeNode* attribute = &m_result.m_allNodes.emplace_back();
-      element.m_children.push_back(attribute);
-      attribute->m_parent = &element;
-      attribute->m_name = readName();
+      appendChild(element, attribute);
+      attribute->m_content.setName(readName());
       attribute->m_type = domain::NodeType::Attribute;
       skipWhitespace();
       expect('=');
       skipWhitespace();
-      attribute->m_value = parseQuotedValue();
+      attribute->m_content.setValue(parseQuotedValue());
       skipWhitespace();
     }
 
@@ -84,27 +83,27 @@ private:
       if (peek() == '<') {
         if (consume("</")) {
           skipWhitespace();
-          expect(element.m_name);
+          expect(element.m_content.getName());
           expect('>');
           return &element;
         }
         if (consume("<!--")) {
           domain::TreeNode* comment = parseComment(&element);
-          element.m_children.push_back(comment);
+          appendChild(element, comment);
           skipWhitespace();
           if (eof()) {
             return &element;
           }
         } else if (consume("<?")) {
           domain::TreeNode* pi = parseProcessingInstruction(&element);
-          element.m_children.push_back(pi);
+          appendChild(element, pi);
           skipWhitespace();
           if (eof()) {
             return &element;
           }
         } else {
           domain::TreeNode* child = parseNode(&element);
-          element.m_children.push_back(child);
+          appendChild(element, child);
           skipWhitespace();
         }
       } else if (eof()) {
@@ -118,8 +117,8 @@ private:
           m_currentPosition = m_xmlContent.size();
           return &element;
         }
-        element.m_value =
-            m_xmlContent.substr(m_currentPosition, next - m_currentPosition);
+        element.m_content.setValue(
+            m_xmlContent.substr(m_currentPosition, next - m_currentPosition));
         m_currentPosition = next;
       }
     }
@@ -193,7 +192,7 @@ private:
     domain::TreeNode& comment{m_result.m_allNodes.emplace_back()};
     comment.m_parent = parent;
     comment.m_type = domain::NodeType::Comment;
-    comment.m_value = m_xmlContent.substr(start, endPos - start);
+    comment.m_content.setValue(m_xmlContent.substr(start, endPos - start));
     consume("-->");
     return &comment;
   }
@@ -203,7 +202,7 @@ private:
     domain::TreeNode& pi{m_result.m_allNodes.emplace_back()};
     pi.m_parent = parent;
     pi.m_type = domain::NodeType::ProcessingInstruction;
-    pi.m_name = readName();
+    pi.m_content.setName(readName());
     skipWhitespace();
     const auto start = m_currentPosition;
     auto endPos = m_xmlContent.find("?>", start);
@@ -211,7 +210,7 @@ private:
       addError("Expected closing '?>'.");
       m_currentPosition = m_xmlContent.size();
     }
-    pi.m_value = m_xmlContent.substr(start, endPos - start);
+    pi.m_content.setValue(m_xmlContent.substr(start, endPos - start));
     consume("?>");
     return &pi;
   }
@@ -220,7 +219,7 @@ private:
     domain::TreeNode& dt{m_result.m_allNodes.emplace_back()};
     dt.m_parent = nullptr;
     dt.m_type = domain::NodeType::Doctype;
-    dt.m_name = readName();
+    dt.m_content.setName(readName());
     skipWhitespace();
     const auto start = m_currentPosition;
     std::size_t bracketDepth = 0;
@@ -241,15 +240,28 @@ private:
           --bracketDepth;
         }
       } else if (peek() == '>' && bracketDepth == 0) {
-        dt.m_value = m_xmlContent.substr(start, m_currentPosition - start);
+        dt.m_content.setValue(m_xmlContent.substr(start, m_currentPosition - start));
         ++m_currentPosition;
         return &dt;
       }
       ++m_currentPosition;
     }
     addError("Expected closing '>' for DOCTYPE.");
-    dt.m_value = m_xmlContent.substr(start);
+    dt.m_content.setValue(m_xmlContent.substr(start));
     return &dt;
+  }
+
+  constexpr void appendChild(domain::TreeNode& parent,
+                             domain::TreeNode* child) {
+    child->m_parent = &parent;
+    child->m_nextSibling = nullptr;
+    if (parent.m_firstChild) {
+      parent.m_lastChild->m_nextSibling = child;
+    } else {
+      parent.m_firstChild = child;
+    }
+    parent.m_lastChild = child;
+    ++parent.m_numChildren;
   }
 
   constexpr std::string_view parseQuotedValue() {
