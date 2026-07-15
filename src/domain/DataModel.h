@@ -1,7 +1,8 @@
 #pragma once
 
-#include <cstddef>
+#include <cassert>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -23,7 +24,6 @@ struct XmlError {
 };
 
 class TreeNodeContent {
-private:
   const char* m_nameStart{};
   const char* m_valueStart{};
   std::uint32_t m_nameLength{};
@@ -33,7 +33,11 @@ public:
   TreeNodeContent() = default;
   TreeNodeContent(std::string_view name, std::string_view value)
       : m_nameStart(name.data()), m_valueStart(value.data()),
-        m_nameLength(name.size()), m_valueLength(value.size()) {}
+        m_nameLength(static_cast<std::uint32_t>(name.size())),
+        m_valueLength(static_cast<std::uint32_t>(value.size())) {
+    assert(name.size() < std::numeric_limits<std::uint32_t>::max());
+    assert(value.size() < std::numeric_limits<std::uint32_t>::max());
+  }
 
   std::string_view getName() const {
     return std::string_view(m_nameStart, m_nameLength);
@@ -43,10 +47,12 @@ public:
   }
 
   void setName(std::string_view s) {
+    assert(s.size() < std::numeric_limits<std::uint32_t>::max());
     m_nameStart = s.data();
     m_nameLength = static_cast<std::uint32_t>(s.size());
   }
   void setValue(std::string_view s) {
+    assert(s.size() < std::numeric_limits<std::uint32_t>::max());
     m_valueStart = s.data();
     m_valueLength = static_cast<std::uint32_t>(s.size());
   }
@@ -62,6 +68,10 @@ struct TreeNode {
   TreeNode* m_nextSibling{};
   std::uint32_t m_numChildren{};
   NodeType m_type{};
+  bool m_isDeleted{}; // Whether this node is soft-deleted
 };
+
+static_assert(sizeof(TreeNode) <= 64,
+              "TreeNode should still fit in an average cache line");
 
 } // namespace sde4::domain

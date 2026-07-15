@@ -1,12 +1,11 @@
 #pragma once
 
 #include <algorithm>
-#include <bitset>
+#include <concepts>
 #include <cstddef>
 #include <deque>
 #include <flat_map>
 #include <iterator>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -15,21 +14,19 @@ namespace sde4::util {
 
 template <typename T> struct VectorListCompactResult;
 
+// VectorList stores elements in chunks and supports soft deletion via
+// T::m_isDeleted. Soft-deleted elements are skipped when iterating.
 template <typename T> class VectorList {
   static constexpr std::size_t ChunkSize{1024 * 64};
-  static constexpr std::size_t BitsPerWord{64};
+
+  static_assert(requires(T t) {
+    { t.m_isDeleted } -> std::convertible_to<bool>;
+    t.m_isDeleted = true;
+  });
 
   struct Chunk {
     std::vector<T> m_data{};
-    std::vector<std::bitset<BitsPerWord>> m_deletedBits{};
   };
-
-  struct Position {
-    std::size_t chunkIndex;
-    std::size_t elementIndex;
-  };
-
-  enum class SoftDeleteOperation { Delete, Undelete };
 
   std::deque<Chunk> m_chunks{};
   std::size_t m_itemCount{};
@@ -47,9 +44,7 @@ template <typename T> class VectorList {
       while (m_chunkIndex < m_chunks->size()) {
         auto const& chunk = (*m_chunks)[m_chunkIndex];
         while (m_elementIndex < chunk.m_data.size()) {
-          auto word = m_elementIndex / BitsPerWord;
-          auto bit = m_elementIndex % BitsPerWord;
-          if (!chunk.m_deletedBits[word].test(bit))
+          if (!chunk.m_data[m_elementIndex].m_isDeleted)
             return;
           ++m_elementIndex;
         }
@@ -133,16 +128,6 @@ public:
     return ref;
   }
 
-  constexpr void softDelete(const T* ptr) {
-    const auto position = findChunkAndIndex(ptr);
-    softDeleteOrUndelete(position, SoftDeleteOperation::Delete);
-  }
-
-  constexpr void softUndelete(const T* ptr) {
-    const auto position = findChunkAndIndex(ptr);
-    softDeleteOrUndelete(position, SoftDeleteOperation::Undelete);
-  }
-
   constexpr std::size_t size() const { return m_itemCount; }
 
   constexpr VectorListCompactResult<T> compact() const {
@@ -151,9 +136,7 @@ public:
 
     for (const auto& chunk : m_chunks) {
       for (std::size_t i = 0; i < chunk.m_data.size(); ++i) {
-        const std::size_t word = i / BitsPerWord;
-        const std::size_t bit = i % BitsPerWord;
-        if (!chunk.m_deletedBits[word].test(bit)) {
+        if (!chunk.m_data[i].m_isDeleted) {
           const T& oldItem = chunk.m_data[i];
           T& newItem = compacted.emplace_back(oldItem);
           oldToNew[&oldItem] = &newItem;
@@ -173,36 +156,6 @@ private:
 
     auto& chunk = m_chunks.emplace_back();
     chunk.m_data.reserve(ChunkSize);
-    const std::size_t wordsNeeded{(ChunkSize + BitsPerWord - 1) / BitsPerWord};
-    chunk.m_deletedBits.resize(wordsNeeded, {});
-  }
-
-  constexpr Position findChunkAndIndex(const T* ptr) const {
-    for (std::size_t i = 0; i < m_chunks.size(); ++i) {
-      const auto& chunk = m_chunks[i];
-      const T* begin = chunk.m_data.data();
-      const T* end = begin + chunk.m_data.size();
-      if (begin <= ptr && ptr < end) {
-        return {i, static_cast<std::size_t>(ptr - begin)};
-      }
-    }
-    throw std::invalid_argument("pointer not found in VectorList");
-  }
-
-  constexpr void softDeleteOrUndelete(Position position,
-                                      SoftDeleteOperation op) {
-    auto& chunk = m_chunks[position.chunkIndex];
-    const std::size_t word = position.elementIndex / BitsPerWord;
-    const std::size_t bit = position.elementIndex % BitsPerWord;
-    if (op == SoftDeleteOperation::Delete &&
-        !chunk.m_deletedBits[word].test(bit)) {
-      chunk.m_deletedBits[word].set(bit);
-      --m_itemCount;
-    } else if (op == SoftDeleteOperation::Undelete &&
-               chunk.m_deletedBits[word].test(bit)) {
-      chunk.m_deletedBits[word].reset(bit);
-      ++m_itemCount;
-    }
   }
 };
 
