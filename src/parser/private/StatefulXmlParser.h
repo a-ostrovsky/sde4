@@ -25,6 +25,17 @@ public:
       if (consume("<!--")) {
         domain::TreeNode* comment = parseComment(nullptr);
         m_result.m_rootNodes.push_back(comment);
+      } else if (consume("<?xml")) {
+        if (!eof() &&
+            (util::isWhitespace(peek()) || peek() == '?')) {
+          domain::TreeNode* decl = parseDeclaration();
+          m_result.m_rootNodes.push_back(decl);
+        } else { // <?xml-stylesheet etc. - fall through to PI
+          m_currentPosition -= sizeof("<?xml") - 1;
+          consume("<?");
+          domain::TreeNode* pi = parseProcessingInstruction(nullptr);
+          m_result.m_rootNodes.push_back(pi);
+        }
       } else if (consume("<?")) {
         domain::TreeNode* pi = parseProcessingInstruction(nullptr);
         m_result.m_rootNodes.push_back(pi);
@@ -249,6 +260,23 @@ private:
     addError("Expected closing '>' for DOCTYPE.");
     dt.m_content.setValue(m_xmlContent.substr(start));
     return &dt;
+  }
+
+  constexpr domain::TreeNode* parseDeclaration() {
+    domain::TreeNode& decl{m_result.m_allNodes.emplace_back()};
+    decl.m_parent = nullptr;
+    decl.m_type = domain::NodeType::Declaration;
+    decl.m_content.setName("xml");
+    skipWhitespace();
+    const auto start = m_currentPosition;
+    auto endPos = m_xmlContent.find("?>", start);
+    if (endPos == std::string_view::npos) {
+      addError("Expected closing '?>'.");
+      m_currentPosition = m_xmlContent.size();
+    }
+    decl.m_content.setValue(m_xmlContent.substr(start, endPos - start));
+    consume("?>");
+    return &decl;
   }
 
   constexpr void appendChild(domain::TreeNode& parent,

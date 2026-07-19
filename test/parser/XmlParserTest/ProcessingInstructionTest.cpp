@@ -9,12 +9,12 @@
 using namespace sde4::parser;
 using namespace sde4::domain;
 
-TEST_CASE("parse xml declaration as pi") {
-  const std::string xml = R"(<?xml version="1.0"?><root/>)";
+TEST_CASE("parse pi with xml-stylesheet target") {
+  const std::string xml = R"(<?xml-stylesheet href="style.xsl"?><root/>)";
   const auto result = XmlParser::parse(xml);
   CHECK(result.m_rootNodes.at(0)->m_type == NodeType::ProcessingInstruction);
-  CHECK(result.m_rootNodes.at(0)->m_content.getName() == "xml");
-  CHECK(result.m_rootNodes.at(0)->m_content.getValue() == R"(version="1.0")");
+  CHECK(result.m_rootNodes.at(0)->m_content.getName() == "xml-stylesheet");
+  CHECK(result.m_rootNodes.at(0)->m_content.getValue() == R"(href="style.xsl")");
   CHECK(result.m_rootNodes.at(1)->m_content.getName() == "root");
 }
 

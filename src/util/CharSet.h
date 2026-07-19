@@ -18,13 +18,14 @@ constexpr std::size_t findFirstNotNameChar(std::string_view s,
   return pos + static_cast<std::size_t>(it - view.begin());
 }
 
+constexpr bool isWhitespace(char c) noexcept {
+  return c == ' ' || (c >= '\t' && c <= '\r');
+}
+
 constexpr std::size_t findFirstNotWhitespace(std::string_view s,
                                              std::size_t pos) noexcept {
-  constexpr auto isWS = [](char c) noexcept {
-    return c == ' ' || (c >= '\t' && c <= '\r');
-  };
   const auto view = s.substr(pos);
-  const auto it = std::ranges::find_if_not(view, isWS);
+  const auto it = std::ranges::find_if_not(view, isWhitespace);
   return pos + static_cast<std::size_t>(it - view.begin());
 }
 
