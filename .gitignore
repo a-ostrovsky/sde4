@@ -14,5 +14,6 @@ CMakeUserPresets.json
 .cache/
 .vscode/
 .zed/
+.idea/
 .vs/
 *.user

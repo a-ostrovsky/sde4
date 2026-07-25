@@ -42,6 +42,9 @@ public:
       } else if (consume("<!DOCTYPE")) {
         domain::TreeNode* dt = parseDoctype();
         m_result.m_rootNodes.push_back(dt);
+      } else if (consume("<![CDATA[")) {
+        domain::TreeNode* cdata = parseCdata(nullptr);
+        m_result.m_rootNodes.push_back(cdata);
       } else if (peek() == '<') {
         domain::TreeNode* root = parseNode(nullptr);
         m_result.m_rootNodes.push_back(root);
@@ -108,6 +111,13 @@ private:
         } else if (consume("<?")) {
           domain::TreeNode* pi = parseProcessingInstruction(&element);
           appendChild(element, pi);
+          skipWhitespace();
+          if (eof()) {
+            return &element;
+          }
+        } else if (consume("<![CDATA[")) {
+          domain::TreeNode* cdata = parseCdata(&element);
+          appendChild(element, cdata);
           skipWhitespace();
           if (eof()) {
             return &element;
@@ -206,6 +216,21 @@ private:
     comment.m_content.setValue(m_xmlContent.substr(start, endPos - start));
     consume("-->");
     return &comment;
+  }
+
+  constexpr domain::TreeNode* parseCdata(domain::TreeNode* parent) {
+    const auto start = m_currentPosition;
+    auto endPos = m_xmlContent.find("]]>", start);
+    if (endPos == std::string_view::npos) {
+      addError("Expected closing ']]>'.");
+      m_currentPosition = m_xmlContent.size();
+    }
+    domain::TreeNode& cdata{m_result.m_allNodes.emplace_back()};
+    cdata.m_parent = parent;
+    cdata.m_type = domain::NodeType::Cdata;
+    cdata.m_content.setValue(m_xmlContent.substr(start, endPos - start));
+    consume("]]>");
+    return &cdata;
   }
 
   constexpr domain::TreeNode*
