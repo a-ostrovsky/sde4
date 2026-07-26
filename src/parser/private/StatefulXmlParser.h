@@ -90,7 +90,6 @@ private:
     }
 
     expect('>');
-    skipWhitespace();
 
     // parse children
     while (true) {
@@ -104,28 +103,24 @@ private:
         if (consume("<!--")) {
           domain::TreeNode* comment = parseComment(&element);
           appendChild(element, comment);
-          skipWhitespace();
           if (eof()) {
             return &element;
           }
         } else if (consume("<?")) {
           domain::TreeNode* pi = parseProcessingInstruction(&element);
           appendChild(element, pi);
-          skipWhitespace();
           if (eof()) {
             return &element;
           }
         } else if (consume("<![CDATA[")) {
           domain::TreeNode* cdata = parseCdata(&element);
           appendChild(element, cdata);
-          skipWhitespace();
           if (eof()) {
             return &element;
           }
         } else {
           domain::TreeNode* child = parseNode(&element);
           appendChild(element, child);
-          skipWhitespace();
         }
       } else if (eof()) {
         addError("Unexpected end of file.");
