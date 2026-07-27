@@ -42,6 +42,7 @@ enable_testing()
 add_executable(sde4_tests
   test/main.cpp
   test/parser/XmlParserTest/ElementTest.cpp
+  test/parser/XmlParserTest/TextTest.cpp
   test/parser/XmlParserTest/AttributeTest.cpp
   test/parser/XmlParserTest/CdataTest.cpp
   test/parser/XmlParserTest/CommentTest.cpp

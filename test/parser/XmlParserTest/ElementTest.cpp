@@ -22,7 +22,10 @@ TEST_CASE("parse root element with content") {
   const std::string xml = "<root>content</root>";
   const auto result = XmlParser::parse(xml);
   CHECK(result.m_rootNodes[0]->m_content.getName() == "root");
-  CHECK(result.m_rootNodes[0]->m_content.getValue() == "content");
+  CHECK(result.m_rootNodes[0]->m_content.getValue().empty());
+  CHECK(result.m_rootNodes[0]->m_numChildren == 1);
+  CHECK(result.m_rootNodes[0]->m_firstChild->m_type == NodeType::Text);
+  CHECK(result.m_rootNodes[0]->m_firstChild->m_content.getValue() == "content");
 }
 
 TEST_CASE("parse self-closing element") {

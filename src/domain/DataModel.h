@@ -16,6 +16,7 @@ enum class NodeType : std::uint8_t {
   Doctype,
   Declaration,
   Cdata,
+  Text,
 };
 
 struct XmlError {
