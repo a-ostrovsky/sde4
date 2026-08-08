@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../util/XmlStringDecoder.h"
 #include <cassert>
 #include <cstdint>
 #include <limits>
@@ -56,6 +57,11 @@ public:
     assert(s.size() < std::numeric_limits<std::uint32_t>::max());
     m_valueStart = s.data();
     m_valueLength = static_cast<std::uint32_t>(s.size());
+  }
+
+  // Resolves entity and character references per W3C XML §4.4/§4.6.
+  std::string decodeValue() const {
+    return util::XmlStringDecoder::decode(getValue());
   }
 };
 

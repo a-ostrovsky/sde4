@@ -52,6 +52,7 @@ add_executable(sde4_tests
   test/domain/NamespaceTest.cpp
   test/util/VectorListTest.cpp
   test/util/CharSetTest.cpp
+  test/util/XmlStringDecoderTest.cpp
   src/parser/private/XmlParser.cpp
 )
 target_include_directories(sde4_tests PRIVATE "${doctest_SOURCE_DIR}")
