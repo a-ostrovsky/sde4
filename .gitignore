@@ -16,4 +16,6 @@ CMakeUserPresets.json
 .zed/
 .idea/
 .vs/
+.claude/
 *.user
+.devcontainer/
