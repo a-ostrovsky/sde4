@@ -11,13 +11,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(sde4
-  src/main.cpp
-  src/parser/private/FileReader.cpp
-  src/parser/private/XmlFileParser.cpp
-  src/parser/private/XmlParser.cpp
-)
-
 add_executable(sde4_benchmark
   benchmark/FileLoadBenchmark.cpp
   src/parser/private/FileReader.cpp
