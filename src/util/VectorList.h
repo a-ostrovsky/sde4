@@ -131,7 +131,7 @@ public:
   constexpr std::size_t size() const { return m_itemCount; }
 
   constexpr VectorListCompactResult<T> compact() const {
-    VectorList<T> compacted;
+    VectorList compacted;
     std::flat_map<const T*, T*> oldToNew;
 
     for (const auto& chunk : m_chunks) {

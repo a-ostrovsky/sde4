@@ -26,8 +26,7 @@ public:
         domain::TreeNode* comment = parseComment(nullptr);
         m_result.m_rootNodes.push_back(comment);
       } else if (consume("<?xml")) {
-        if (!eof() &&
-            (util::isWhitespace(peek()) || peek() == '?')) {
+        if (!eof() && (util::isWhitespace(peek()) || peek() == '?')) {
           domain::TreeNode* decl = parseDeclaration();
           m_result.m_rootNodes.push_back(decl);
         } else { // <?xml-stylesheet etc. - fall through to PI
@@ -51,7 +50,7 @@ public:
       } else {
         addError("Unexpected content at top level.");
         // skip to next '<' to avoid infinite loop
-        auto next = m_xmlContent.find('<', m_currentPosition);
+        const auto next = m_xmlContent.find('<', m_currentPosition);
         if (next == std::string_view::npos) {
           m_currentPosition = m_xmlContent.size();
         } else {
@@ -195,7 +194,7 @@ private:
 
   constexpr domain::TreeNode* parseComment(domain::TreeNode* parent) {
     const auto start = m_currentPosition;
-    auto endPos = m_xmlContent.find("-->", start);
+    const auto endPos = m_xmlContent.find("-->", start);
     if (endPos == std::string_view::npos) {
       addError("Expected closing '-->'.");
       m_currentPosition = m_xmlContent.size();
@@ -212,7 +211,7 @@ private:
 
   constexpr domain::TreeNode* parseCdata(domain::TreeNode* parent) {
     const auto start = m_currentPosition;
-    auto endPos = m_xmlContent.find("]]>", start);
+    const auto endPos = m_xmlContent.find("]]>", start);
     if (endPos == std::string_view::npos) {
       addError("Expected closing ']]>'.");
       m_currentPosition = m_xmlContent.size();
@@ -235,7 +234,7 @@ private:
     pi.m_content.setName(readName());
     skipWhitespace();
     const auto start = m_currentPosition;
-    auto endPos = m_xmlContent.find("?>", start);
+    const auto endPos = m_xmlContent.find("?>", start);
     if (endPos == std::string_view::npos) {
       addError("Expected closing '?>'.");
       m_currentPosition = m_xmlContent.size();
@@ -272,7 +271,8 @@ private:
           --bracketDepth;
         }
       } else if (peek() == '>' && bracketDepth == 0) {
-        dt.m_content.setValue(m_xmlContent.substr(start, m_currentPosition - start));
+        dt.m_content.setValue(
+            m_xmlContent.substr(start, m_currentPosition - start));
         ++m_currentPosition;
         return &dt;
       }
@@ -290,7 +290,7 @@ private:
     decl.m_content.setName("xml");
     skipWhitespace();
     const auto start = m_currentPosition;
-    auto endPos = m_xmlContent.find("?>", start);
+    const auto endPos = m_xmlContent.find("?>", start);
     if (endPos == std::string_view::npos) {
       addError("Expected closing '?>'.");
       m_currentPosition = m_xmlContent.size();
@@ -303,7 +303,7 @@ private:
   }
 
   constexpr domain::TreeNode* parseText(domain::TreeNode* parent) {
-    auto next = m_xmlContent.find('<', m_currentPosition);
+    const auto next = m_xmlContent.find('<', m_currentPosition);
     if (next == std::string_view::npos) {
       addError("Expected '<'.");
       m_currentPosition = m_xmlContent.size();
@@ -318,8 +318,8 @@ private:
     return &textNode;
   }
 
-  constexpr void appendChild(domain::TreeNode& parent,
-                             domain::TreeNode* child) {
+  static constexpr void appendChild(domain::TreeNode& parent,
+                                    domain::TreeNode* child) {
     child->m_parent = &parent;
     child->m_nextSibling = nullptr;
     if (parent.m_firstChild) {
@@ -345,7 +345,7 @@ private:
       addError(std::format("Expected closing quote '{}'.", quoteChar));
       m_currentPosition = m_xmlContent.size();
     }
-    auto ret = m_xmlContent.substr(start, m_currentPosition - start);
+    const auto ret = m_xmlContent.substr(start, m_currentPosition - start);
     expect(quoteChar); // skip closing quote
     return ret;
   }

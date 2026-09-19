@@ -1,6 +1,5 @@
 #include "FileReader.h"
 #include <cstdio>
-#include <cstring>
 #include <memory>
 
 namespace sde4::parser {
@@ -8,7 +7,9 @@ namespace sde4::parser {
 std::expected<std::string, ParseError>
 FileReader::loadFileIntoMemory(const std::filesystem::path& path) {
   const auto sz = std::filesystem::file_size(path);
-  constexpr auto closeFile = [](FILE* f) noexcept { std::fclose(f); };
+  [[maybe_unused]] constexpr auto closeFile = [](FILE* f) noexcept {
+    std::fclose(f);
+  };
   std::unique_ptr<FILE, decltype(closeFile)> f{
       fopen(path.string().c_str(), "rb"),
   };
