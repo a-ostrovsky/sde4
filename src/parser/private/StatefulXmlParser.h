@@ -12,6 +12,28 @@ class StatefulXmlParser {
   std::size_t m_currentPosition{};
   std::string_view m_xmlContent;
 
+  // Advance past malformed input if a parser loop makes no progress.
+  class ProgressGuard {
+    std::size_t& m_position;
+    const std::size_t m_end;
+    const std::size_t m_start;
+
+  public:
+    constexpr ProgressGuard(std::size_t& position, std::size_t end) noexcept
+        : m_position{position}, m_end{end}, m_start{position} {}
+
+    ProgressGuard(const ProgressGuard&) = delete;
+    ProgressGuard& operator=(const ProgressGuard&) = delete;
+    ProgressGuard(ProgressGuard&&) = delete;
+    ProgressGuard& operator=(ProgressGuard&&) = delete;
+
+    constexpr ~ProgressGuard() noexcept {
+      if (m_position == m_start && m_position < m_end) {
+        ++m_position;
+      }
+    }
+  };
+
 public:
   explicit constexpr StatefulXmlParser(std::string_view xmlContent)
       : m_xmlContent(xmlContent) {}
@@ -19,6 +41,7 @@ public:
   constexpr XmlParseResult parse() {
     m_currentPosition = 0;
     while (!eof()) {
+      const ProgressGuard progress{m_currentPosition, m_xmlContent.size()};
       skipWhitespace();
       if (eof())
         break;
@@ -72,6 +95,7 @@ private:
 
     // parse attributes (before '>' or '/>')
     while (peek() != '>' && peek() != '/') {
+      const ProgressGuard progress{m_currentPosition, m_xmlContent.size()};
       domain::TreeNode* attribute = &m_result.m_allNodes.emplace_back();
       appendChild(element, attribute);
       attribute->m_content.setName(readName());
@@ -92,6 +116,7 @@ private:
 
     // parse children
     while (true) {
+      const ProgressGuard progress{m_currentPosition, m_xmlContent.size()};
       if (peek() == '<') {
         if (consume("</")) {
           skipWhitespace();

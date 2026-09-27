@@ -29,3 +29,12 @@ TEST_CASE("parse two attributes") {
   CHECK(result.m_rootNodes.at(0)->m_firstChild->m_nextSibling->m_content.getValue() ==
         "val2");
 }
+
+TEST_CASE("malformed attribute returns an error without looping") {
+  const std::string xml = "<root @/>";
+  const auto result = XmlParser::parse(xml);
+
+  CHECK_FALSE(result.m_errors.empty());
+  CHECK(result.m_rootNodes.size() == 1);
+  CHECK(result.m_allNodes.size() < 4);
+}
