@@ -50,6 +50,18 @@ TEST_CASE("parse nested element") {
   CHECK(result.m_rootNodes[0]->m_firstChild->m_content.getName() == "nested");
 }
 
+TEST_CASE("truncated elements return errors") {
+  const std::string_view inputs[]{"<root", "<root>", "<root a='v"};
+  for (const std::string_view xml : inputs) {
+    XmlParseResult result{};
+    CHECK_NOTHROW(result = XmlParser::parse(xml));
+    CHECK_FALSE(result.m_errors.empty());
+    for (const auto& error : result.m_errors) {
+      CHECK(error.m_position <= xml.size());
+    }
+  }
+}
+
 // // Error handling
 
 // TEST_CASE("parse root element with error") {

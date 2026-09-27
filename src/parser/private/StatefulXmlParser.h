@@ -94,7 +94,7 @@ private:
     skipWhitespace();
 
     // parse attributes (before '>' or '/>')
-    while (peek() != '>' && peek() != '/') {
+    while (!eof() && peek() != '>' && peek() != '/') {
       const ProgressGuard progress{m_currentPosition, m_xmlContent.size()};
       domain::TreeNode* attribute = &m_result.m_allNodes.emplace_back();
       appendChild(element, attribute);
@@ -107,6 +107,10 @@ private:
       skipWhitespace();
     }
 
+    if (!expectNoEof()) {
+      return &element;
+    }
+
     // self-closing tag
     if (consume("/>")) {
       return &element;
@@ -117,6 +121,10 @@ private:
     // parse children
     while (true) {
       const ProgressGuard progress{m_currentPosition, m_xmlContent.size()};
+      if (!expectNoEof()) {
+        return &element;
+      }
+
       if (peek() == '<') {
         if (consume("</")) {
           skipWhitespace();
@@ -146,9 +154,6 @@ private:
           domain::TreeNode* child = parseNode(&element);
           appendChild(element, child);
         }
-      } else if (eof()) {
-        addError("Unexpected end of file.");
-        return &element;
       } else {
         domain::TreeNode* textNode = parseText(&element);
         if (textNode == nullptr) {
@@ -160,7 +165,9 @@ private:
   }
 
   constexpr bool consume(char c) {
-    expectNoEof();
+    if (!expectNoEof()) {
+      return false;
+    }
     if (peek() == c) {
       ++m_currentPosition;
       return true;
@@ -169,7 +176,9 @@ private:
   }
 
   constexpr bool consume(std::string_view str) {
-    expectNoEof();
+    if (!expectNoEof()) {
+      return false;
+    }
     if (m_xmlContent.compare(m_currentPosition, str.size(), str) == 0) {
       m_currentPosition += str.size();
       return true;
@@ -178,21 +187,23 @@ private:
   }
 
   constexpr void expect(char c) {
-    if (!consume(c)) {
+    if (!consume(c) && !eof()) {
       addError(std::format("Expected: {}. Found: {}.", c, peek()));
     }
   }
 
   constexpr void expect(std::string_view str) {
-    if (!consume(str)) {
+    if (!consume(str) && !eof()) {
       addError(std::format("Expected: {}. Found: {}.", str, peek()));
     }
   }
 
-  constexpr void expectNoEof() {
+  constexpr bool expectNoEof() {
     if (eof()) {
       addError("Unexpected end of file.");
+      return false;
     }
+    return true;
   }
 
   constexpr bool eof() const {
@@ -357,6 +368,10 @@ private:
   }
 
   constexpr std::string_view parseQuotedValue() {
+    if (!expectNoEof()) {
+      return {};
+    }
+
     if (peek() != '"' && peek() != '\'') {
       addError(std::format("Expected '\"' or '\\'', found: {}.", peek()));
       return {};
@@ -367,8 +382,8 @@ private:
     m_currentPosition =
         m_xmlContent.find(quoteChar, start); // TODO: handle escaped quotes
     if (m_currentPosition == std::string_view::npos) {
-      addError(std::format("Expected closing quote '{}'.", quoteChar));
       m_currentPosition = m_xmlContent.size();
+      addError(std::format("Expected closing quote '{}'.", quoteChar));
     }
     const auto ret = m_xmlContent.substr(start, m_currentPosition - start);
     expect(quoteChar); // skip closing quote
