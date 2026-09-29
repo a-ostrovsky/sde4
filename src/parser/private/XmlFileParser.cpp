@@ -17,6 +17,11 @@ struct Impl : XmlFileParser {
 
     auto fileContent = std::move(fileContentOrError.value());
 
+    // We should disable SSO as XmlParser creates references into the string.
+    // In case of short files (e.g. <a/>) moving the string will just copy it
+    // and the references will dangle.
+    disableSSOForString(fileContent);
+
     auto parseResult = XmlParser::parse(fileContent);
 
     if (!parseResult.m_errors.empty()) {
@@ -37,6 +42,16 @@ struct Impl : XmlFileParser {
     };
   }
 
+  constexpr static void disableSSOForString(std::string& s) {
+#if !defined(_LIBCPP_VERSION) && \
+    !defined(__GLIBCXX__) && \
+    !defined(_MSVC_STL_VERSION)
+#error "Review std::string storage and move behavior."
+#endif
+    // Increase capacity beyond what fits inside the string object
+    // to force heap storage.
+    s.reserve(sizeof(std::string) + 1);
+  }
 };
 } // namespace
 
